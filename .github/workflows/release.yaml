@@ -153,12 +153,17 @@ jobs:
         shell: bash
         run: pnpm changeset publish
 
+      # Push the version commit then the (lightweight) tags created by `changeset publish`.
+      # `--follow-tags` only pushes annotated tags; changesets creates lightweight ones,
+      # so we push in two steps.
       - name: "Push version commit and tags"
         if: |
           (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/next') &&
           steps.changesets.outputs.has_changesets == 'true'
         shell: bash
-        run: git push --follow-tags
+        run: |
+          git push
+          git push --tags
 
       # MARK: Back-merge main into next
       - name: Merge back main into next

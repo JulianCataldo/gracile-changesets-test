@@ -6,9 +6,9 @@ on:
       - main
       - next
     paths:
-      - 'packages/**'
-      - 'pnpm-workspace.yaml'
-      - '.changeset/**'
+      - "packages/**"
+      - "pnpm-workspace.yaml"
+      - ".changeset/**"
 
 permissions:
   contents: read
