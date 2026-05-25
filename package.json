@@ -1,5 +1,5 @@
 {
-  "name": "@j_c/root",
+  "name": "@j_c/gracile-1-root",
   "version": "0.0.0",
   "private": true,
   "description": "Changesets + pnpm monorepo test harness (guinea pig)",

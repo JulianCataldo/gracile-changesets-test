@@ -1,10 +1,14 @@
 {
-  "name": "@j_c/internal-utils",
+  "name": "@j_c/gracile-1-internal-utils",
   "version": "0.1.0",
   "description": "Shared internal utilities",
   "type": "module",
   "main": "./src/index.ts",
-  "files": ["src"],
+  "files": [
+    "src"
+  ],
   "license": "ISC",
-  "publishConfig": { "access": "public" }
+  "publishConfig": {
+    "access": "public"
+  }
 }

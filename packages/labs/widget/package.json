@@ -1,13 +1,17 @@
 {
-  "name": "@j_c/widget",
+  "name": "@j_c/gracile-1-widget",
   "version": "0.1.0",
   "description": "Labs widget — independent add-on",
   "type": "module",
   "main": "./src/index.ts",
-  "files": ["src"],
+  "files": [
+    "src"
+  ],
   "license": "ISC",
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
-    "@j_c/core": "workspace:^"
+    "@j_c/gracile-1-core": "workspace:^"
   }
 }

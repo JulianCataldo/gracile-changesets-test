@@ -1,13 +1,17 @@
 {
-  "name": "@j_c/core",
+  "name": "@j_c/gracile-1-core",
   "version": "0.1.0",
   "description": "Framework core — public entry point",
   "type": "module",
   "main": "./src/index.ts",
-  "files": ["src"],
+  "files": [
+    "src"
+  ],
   "license": "ISC",
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
-    "@j_c/engine": "workspace:^"
+    "@j_c/gracile-1-engine": "workspace:^"
   }
 }
