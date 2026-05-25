@@ -7,5 +7,7 @@
     "@j_c/gracile-1-internal-utils": "0.1.0",
     "@j_c/gracile-1-widget": "0.1.0"
   },
-  "changesets": []
+  "changesets": [
+    "warm-shirts-fix"
+  ]
 }
