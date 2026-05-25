@@ -141,7 +141,7 @@ jobs:
         shell: bash
         run: pnpm changeset publish
 
-      # MARK: [NEXT] Publish pre-release under `next` dist-tag
+      # MARK: [NEXT] Publish pre-release — tag `next` is applied automatically by pre mode
       - name: "Changesets publish [next]"
         if: |
           github.ref == 'refs/heads/next' &&
@@ -151,7 +151,7 @@ jobs:
           NODE_AUTH_TOKEN: "${{ secrets.NPM_TOKEN }}"
           NPM_CONFIG_PROVENANCE: "true"
         shell: bash
-        run: pnpm changeset publish --tag next
+        run: pnpm changeset publish
 
       - name: "Push version commit and tags"
         if: |
