@@ -1,0 +1,170 @@
+name: CI / Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - next
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: CI / Release
+
+    timeout-minutes: 15
+
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      id-token: write # OIDC for npm provenance
+
+    runs-on: ubuntu-latest
+
+    steps:
+      # MARK: Setup
+
+      - name: Git checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Setup PNPM
+        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.2.0
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        with:
+          registry-url: 'https://registry.npmjs.org'
+          node-version: 24
+          cache: pnpm
+
+      - name: Install packages
+        shell: bash
+        run: pnpm install --frozen-lockfile
+
+      # MARK: Lint/Checks
+
+      - name: Lint last commit — Commitlint
+        shell: bash
+        run: node --run lint:commit
+
+      # MARK: Publish packages
+      # NOTE: NPM_TOKEN must be a Granular Access Token (or Automation token)
+      # to bypass 2FA in CI.
+
+      - name: Git user configuration
+        run: |
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+
+      # MARK: Detect release intent
+      # A push with no pending changesets runs CI only — no version bump, no
+      # npm publish, no tag push.
+      - name: 'Detect pending changesets'
+        id: changesets
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/next'
+        shell: bash
+        run: |
+          shopt -s nullglob
+          files=(.changeset/*.md)
+          count=0
+          for f in "${files[@]}"; do
+            base=$(basename "$f")
+            [ "$base" != "README.md" ] && count=$((count + 1))
+          done
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          if [ "$count" -gt 0 ]; then
+            echo "has_changesets=true" >> "$GITHUB_OUTPUT"
+            echo "Found $count pending changeset(s) — will release."
+          else
+            echo "has_changesets=false" >> "$GITHUB_OUTPUT"
+            echo "No pending changesets — skipping publish."
+          fi
+
+      # MARK: [NEXT] Enter pre mode if needed
+      # `.changeset/pre.json` should normally already be committed on `next`;
+      # this step is idempotent.
+      - name: 'Enter Changesets pre mode [next]'
+        if: |
+          github.ref == 'refs/heads/next' &&
+          steps.changesets.outputs.has_changesets == 'true'
+        shell: bash
+        run: |
+          if [ ! -f .changeset/pre.json ]; then
+            pnpm changeset pre enter next
+            git add .changeset/pre.json
+            git commit -m 'chore: enter changesets pre mode [next] [skip ci]'
+          else
+            echo "Already in pre mode — skipping."
+          fi
+
+      # MARK: Version packages
+      - name: 'Changesets version'
+        if: |
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/next') &&
+          steps.changesets.outputs.has_changesets == 'true'
+        shell: bash
+        run: pnpm changeset version
+
+      - name: 'Commit version bumps'
+        if: |
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/next') &&
+          steps.changesets.outputs.has_changesets == 'true'
+        shell: bash
+        run: |
+          git add -A
+          if git diff --cached --quiet; then
+            echo 'No version changes to commit.'
+          else
+            MSG='chore: version packages [skip ci]'
+            if [ "${{ github.ref }}" = 'refs/heads/next' ]; then
+              MSG='chore: version packages [next] [skip ci]'
+            fi
+            git commit -m "$MSG"
+          fi
+
+      # MARK: [MAIN] Publish stable
+      - name: 'Changesets publish [main]'
+        if: |
+          github.ref == 'refs/heads/main' &&
+          steps.changesets.outputs.has_changesets == 'true'
+        env:
+          GH_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
+          NODE_AUTH_TOKEN: '${{ secrets.NPM_TOKEN }}'
+          NPM_CONFIG_PROVENANCE: 'true'
+        shell: bash
+        run: pnpm changeset publish
+
+      # MARK: [NEXT] Publish pre-release under `next` dist-tag
+      - name: 'Changesets publish [next]'
+        if: |
+          github.ref == 'refs/heads/next' &&
+          steps.changesets.outputs.has_changesets == 'true'
+        env:
+          GH_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
+          NODE_AUTH_TOKEN: '${{ secrets.NPM_TOKEN }}'
+          NPM_CONFIG_PROVENANCE: 'true'
+        shell: bash
+        run: pnpm changeset publish --tag next
+
+      - name: 'Push version commit and tags'
+        if: |
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/next') &&
+          steps.changesets.outputs.has_changesets == 'true'
+        shell: bash
+        run: git push --follow-tags
+
+      # MARK: Back-merge main into next
+      - name: Merge back main into next
+        if: github.ref == 'refs/heads/main'
+        continue-on-error: true
+        env:
+          GH_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
+        run: |
+          git checkout next
+          git merge main --no-ff -m 'chore: auto-merge main into next [skip ci]'
+          git push

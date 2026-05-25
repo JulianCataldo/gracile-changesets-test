@@ -1,0 +1,13 @@
+{
+  "name": "@j_c/engine",
+  "version": "0.1.0",
+  "description": "Build + dev engine",
+  "type": "module",
+  "main": "./src/index.ts",
+  "files": ["src"],
+  "license": "ISC",
+  "publishConfig": { "access": "public" },
+  "dependencies": {
+    "@j_c/internal-utils": "workspace:^"
+  }
+}

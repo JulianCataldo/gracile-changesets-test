@@ -1,0 +1,25 @@
+{
+  "name": "@j_c/root",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Changesets + pnpm monorepo test harness (guinea pig)",
+  "type": "module",
+  "scripts": {
+    "audit": "pnpm audit signatures",
+    "lint:commit": "commitlint --from=HEAD~1 --to=HEAD --verbose",
+    "prepare": "husky",
+    "change": "changeset",
+    "changeset:status": "changeset status --since=origin/main",
+    "version:packages": "changeset version",
+    "release": "changeset publish",
+    "release:snapshot": "changeset version --snapshot canary && changeset publish --tag canary --no-git-tag"
+  },
+  "devDependencies": {
+    "@changesets/changelog-github": "^0.5.1",
+    "@changesets/cli": "^2.29.4",
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/types": "^19.8.1",
+    "husky": "^9.1.7"
+  },
+  "packageManager": "pnpm@9.15.9"
+}
