@@ -107,6 +107,8 @@ jobs:
         if: |
           (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/next') &&
           steps.changesets.outputs.has_changesets == 'true'
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
         run: pnpm changeset version
 
