@@ -1,13 +1,21 @@
 {
-  "name": "@j_c/engine",
-  "version": "0.1.0",
+  "name": "@j_c/gracile-1-engine",
+  "version": "0.1.1-next.2",
   "description": "Build + dev engine",
   "type": "module",
   "main": "./src/index.ts",
-  "files": ["src"],
+  "files": [
+    "src"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JulianCataldo/gracile-changesets-test"
+  },
   "license": "ISC",
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
-    "@j_c/internal-utils": "workspace:^"
+    "@j_c/gracile-1-internal-utils": "workspace:^"
   }
 }

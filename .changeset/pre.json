@@ -1,0 +1,15 @@
+{
+  "mode": "pre",
+  "tag": "next",
+  "initialVersions": {
+    "@j_c/gracile-1-core": "0.1.0",
+    "@j_c/gracile-1-engine": "0.1.0",
+    "@j_c/gracile-1-internal-utils": "0.1.0",
+    "@j_c/gracile-1-widget": "0.1.0"
+  },
+  "changesets": [
+    "shaky-buckets-matter",
+    "thin-jobs-hear",
+    "warm-shirts-fix"
+  ]
+}

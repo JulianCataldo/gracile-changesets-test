@@ -13,24 +13,24 @@
 
 /** @type {import('@commitlint/types').UserConfig} */
 export default {
-	parserPreset: {
-		parserOpts: {
-			headerPattern: /^(.*)$/,
-			headerCorrespondence: ['subject'],
-		},
-	},
-	rules: {
-		'body-leading-blank': [2, 'always'],
-		'footer-leading-blank': [2, 'always'],
-		'header-max-length': [2, 'always', 72],
-		'header-trim': [2, 'always'],
-		'subject-case': [
-			2,
-			'never',
-			['lower-case', 'pascal-case', 'snake-case', 'kebab-case'],
-		],
-		'subject-empty': [2, 'never'],
-		'subject-full-stop': [2, 'never', '.'],
-		'body-max-line-length': [2, 'always', 72],
-	},
+  parserPreset: {
+    parserOpts: {
+      headerPattern: /^(.*)$/,
+      headerCorrespondence: ["subject"],
+    },
+  },
+  rules: {
+    "body-leading-blank": [2, "always"],
+    "footer-leading-blank": [2, "always"],
+    "header-max-length": [2, "always", 72],
+    "header-trim": [2, "always"],
+    "subject-case": [
+      2,
+      "never",
+      ["lower-case", "pascal-case", "snake-case", "kebab-case"],
+    ],
+    "subject-empty": [2, "never"],
+    "subject-full-stop": [2, "never", "."],
+    "body-max-line-length": [2, "always", 72],
+  },
 };

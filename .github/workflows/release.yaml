@@ -38,7 +38,7 @@ jobs:
       - name: Use Node.js 24
         uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
         with:
-          registry-url: 'https://registry.npmjs.org'
+          registry-url: "https://registry.npmjs.org"
           node-version: 24
           cache: pnpm
 
@@ -64,7 +64,7 @@ jobs:
       # MARK: Detect release intent
       # A push with no pending changesets runs CI only — no version bump, no
       # npm publish, no tag push.
-      - name: 'Detect pending changesets'
+      - name: "Detect pending changesets"
         id: changesets
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/next'
         shell: bash
@@ -88,7 +88,7 @@ jobs:
       # MARK: [NEXT] Enter pre mode if needed
       # `.changeset/pre.json` should normally already be committed on `next`;
       # this step is idempotent.
-      - name: 'Enter Changesets pre mode [next]'
+      - name: "Enter Changesets pre mode [next]"
         if: |
           github.ref == 'refs/heads/next' &&
           steps.changesets.outputs.has_changesets == 'true'
@@ -97,20 +97,22 @@ jobs:
           if [ ! -f .changeset/pre.json ]; then
             pnpm changeset pre enter next
             git add .changeset/pre.json
-            git commit -m 'chore: enter changesets pre mode [next] [skip ci]'
+            git commit -m 'Enter changesets pre mode [next] [skip ci]'
           else
             echo "Already in pre mode — skipping."
           fi
 
       # MARK: Version packages
-      - name: 'Changesets version'
+      - name: "Changesets version"
         if: |
           (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/next') &&
           steps.changesets.outputs.has_changesets == 'true'
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
         run: pnpm changeset version
 
-      - name: 'Commit version bumps'
+      - name: "Commit version bumps"
         if: |
           (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/next') &&
           steps.changesets.outputs.has_changesets == 'true'
@@ -120,51 +122,56 @@ jobs:
           if git diff --cached --quiet; then
             echo 'No version changes to commit.'
           else
-            MSG='chore: version packages [skip ci]'
+            MSG='Version packages [skip ci]'
             if [ "${{ github.ref }}" = 'refs/heads/next' ]; then
-              MSG='chore: version packages [next] [skip ci]'
+              MSG='Version packages [next] [skip ci]'
             fi
             git commit -m "$MSG"
           fi
 
       # MARK: [MAIN] Publish stable
-      - name: 'Changesets publish [main]'
+      - name: "Changesets publish [main]"
         if: |
           github.ref == 'refs/heads/main' &&
           steps.changesets.outputs.has_changesets == 'true'
         env:
-          GH_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
-          NODE_AUTH_TOKEN: '${{ secrets.NPM_TOKEN }}'
-          NPM_CONFIG_PROVENANCE: 'true'
+          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          NODE_AUTH_TOKEN: "${{ secrets.NPM_TOKEN }}"
+          NPM_CONFIG_PROVENANCE: "true"
         shell: bash
         run: pnpm changeset publish
 
-      # MARK: [NEXT] Publish pre-release under `next` dist-tag
-      - name: 'Changesets publish [next]'
+      # MARK: [NEXT] Publish pre-release — tag `next` is applied automatically by pre mode
+      - name: "Changesets publish [next]"
         if: |
           github.ref == 'refs/heads/next' &&
           steps.changesets.outputs.has_changesets == 'true'
         env:
-          GH_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
-          NODE_AUTH_TOKEN: '${{ secrets.NPM_TOKEN }}'
-          NPM_CONFIG_PROVENANCE: 'true'
+          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          NODE_AUTH_TOKEN: "${{ secrets.NPM_TOKEN }}"
+          NPM_CONFIG_PROVENANCE: "true"
         shell: bash
-        run: pnpm changeset publish --tag next
+        run: pnpm changeset publish
 
-      - name: 'Push version commit and tags'
+      # Push the version commit then the (lightweight) tags created by `changeset publish`.
+      # `--follow-tags` only pushes annotated tags; changesets creates lightweight ones,
+      # so we push in two steps.
+      - name: "Push version commit and tags"
         if: |
           (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/next') &&
           steps.changesets.outputs.has_changesets == 'true'
         shell: bash
-        run: git push --follow-tags
+        run: |
+          git push
+          git push --tags
 
       # MARK: Back-merge main into next
       - name: Merge back main into next
         if: github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
-          GH_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
+          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         run: |
           git checkout next
-          git merge main --no-ff -m 'chore: auto-merge main into next [skip ci]'
+          git merge main --no-ff -m 'Auto-merge main into next [skip ci]'
           git push
