@@ -8,6 +8,7 @@
     "@j_c/gracile-1-widget": "0.1.0"
   },
   "changesets": [
+    "shaky-buckets-matter",
     "thin-jobs-hear",
     "warm-shirts-fix"
   ]
