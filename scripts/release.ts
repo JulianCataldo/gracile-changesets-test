@@ -1,5 +1,35 @@
 #!/usr/bin/env tsx
 
+/*------------------------------------------------------------------------------
+
+Changesets release orchestrator — runs in CI on pushes to `main` / `next`.
+
+Flow:
+1. Detect current branch; exit early if it is not a release branch.
+2. Exit early when no pending changeset files exist (unless --phase=publish).
+3. prepare phase
+    a. Configure git user from GITHUB_ACTOR.
+    b. Enter / exit Changesets pre-mode depending on the branch.
+    c. Run `changeset version` to bump versions and consume changeset files.
+    d. Validate: stable branch must have no prerelease versions;
+      next branch must have only `-<preTag>.N` versions on changed packages.
+    e. Commit the version bumps.
+4. publish phase
+    a. Run `changeset publish` (with `--tag <preTag>` on the next branch).
+    b. Retry once on failure to recover partially published packages.
+    c. Push the commit and tags to origin.
+    d. On stable branch, merge main back into next (--no-ff).
+
+CLI flags (all optional):
+  --dry-run            Print mutating commands without executing them.
+  --phase              all (default) | prepare | publish
+  --pre-tag            Dist-tag for prerelease publishes (default: "next").
+  --stable-branch      Default: "main".
+  --next-branch        Default: "next".
+  --skip-merge-back    Skip the main→next merge after a stable release.
+
+------------------------------------------------------------------------------*/
+
 import { spawnSync, type SpawnSyncReturns } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
