@@ -1,5 +1,11 @@
 # @j_c/gracile-1-engine
 
+## 0.1.2
+
+### Patch Changes
+
+- [`bee9b27`](https://github.com/JulianCataldo/gracile-changesets-test/commit/bee9b27f44ebe8eea3c07f0f71a2edd0dc22a7df) Thanks [@JulianCataldo](https://github.com/JulianCataldo)! - Some stuff again 123
+
 ## 0.1.1-next.2
 
 ### Patch Changes
