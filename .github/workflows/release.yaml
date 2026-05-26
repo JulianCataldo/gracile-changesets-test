@@ -54,4 +54,4 @@ jobs:
           NODE_AUTH_TOKEN: "${{ secrets.NPM_TOKEN }}"
           NPM_CONFIG_PROVENANCE: "true"
         shell: bash
-        run: node scripts/release.mjs
+        run: node --run release:ci

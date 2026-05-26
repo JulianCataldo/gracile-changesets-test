@@ -1,5 +1,15 @@
 # @j_c/gracile-1-internal-utils
 
+## 0.2.0
+
+### Minor Changes
+
+- [`a863c25`](https://github.com/JulianCataldo/gracile-changesets-test/commit/a863c254d69363ffa81d12bce805d0fc0df48a08) Thanks [@JulianCataldo](https://github.com/JulianCataldo)! - Big changes
+
+  - 1
+  - 2
+  - 3…
+
 ## 0.1.1-next.1
 
 ### Patch Changes
