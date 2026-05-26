@@ -1,6 +1,6 @@
 {
   "name": "@j_c/gracile-1-internal-utils",
-  "version": "0.2.1-next.1",
+  "version": "0.2.1",
   "description": "Shared internal utilities",
   "type": "module",
   "main": "./src/index.ts",
