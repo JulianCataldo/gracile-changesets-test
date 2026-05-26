@@ -1,5 +1,11 @@
 # @j_c/gracile-1-internal-utils
 
+## 0.2.1-next.1
+
+### Patch Changes
+
+- [`f6d395e`](https://github.com/JulianCataldo/gracile-changesets-test/commit/f6d395eeef9186be1e6cd730eaa72a7ab5286909) Thanks [@JulianCataldo](https://github.com/JulianCataldo)! - Giraffe
+
 ## 0.2.1-next.0
 
 ### Patch Changes
