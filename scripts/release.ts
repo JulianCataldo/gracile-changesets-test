@@ -15,7 +15,7 @@ Flow:
       next branch must have only `-<preTag>.N` versions on changed packages.
     e. Commit the version bumps.
 4. publish phase
-    a. Run `changeset publish` (with `--tag <preTag>` on the next branch).
+  a. Run `changeset publish`.
     b. Retry once on failure to recover partially published packages.
     c. Push the commit and tags to origin.
     d. On stable branch, merge main back into next (--no-ff).
@@ -23,7 +23,7 @@ Flow:
 CLI flags (all optional):
   --dry-run            Print mutating commands without executing them.
   --phase              all (default) | prepare | publish
-  --pre-tag            Dist-tag for prerelease publishes (default: "next").
+  --pre-tag            Pre-mode tag for prerelease versions (default: "next").
   --stable-branch      Default: "main".
   --next-branch        Default: "next".
   --skip-merge-back    Skip the main→next merge after a stable release.
@@ -113,9 +113,6 @@ function prepareRelease(): void {
 
 function publishRelease(): void {
   const publishArgs = ["changeset", "publish"];
-  if (isNext) {
-    publishArgs.push("--tag", preTag);
-  }
 
   try {
     run("pnpm", publishArgs, { env: publishEnv() });
