@@ -1,17 +1,29 @@
-#!/usr/bin/env node
-import { spawnSync } from "node:child_process";
+#!/usr/bin/env tsx
+
+import { spawnSync, type SpawnSyncReturns } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { parseArgs } from "node:util";
 
-const args = parseArgs(process.argv.slice(2));
+const { values: args } = parseArgs({
+  options: {
+    "dry-run": { type: "boolean" },
+    phase: { type: "string" },
+    "pre-tag": { type: "string" },
+    "skip-merge-back": { type: "boolean" },
+    "stable-branch": { type: "string" },
+    "next-branch": { type: "string" },
+  },
+});
+
 const cwd = process.cwd();
-const dryRun = Boolean(args["dry-run"]);
-const phase = String(args.phase ?? "all");
-const stableBranch = String(args["stable-branch"] ?? "main");
-const nextBranch = String(args["next-branch"] ?? "next");
-const preTag = String(args["pre-tag"] ?? "next");
-const skipMergeBack = Boolean(args["skip-merge-back"]);
+const dryRun = args["dry-run"] ?? false;
+const phase = args.phase ?? "all";
+const stableBranch = args["stable-branch"] ?? "main";
+const nextBranch = args["next-branch"] ?? "next";
+const preTag = args["pre-tag"] ?? "next";
+const skipMergeBack = args["skip-merge-back"] ?? false;
 
 const supportedPhases = new Set(["all", "prepare", "publish"]);
 if (!supportedPhases.has(phase)) {
@@ -43,7 +55,9 @@ if (phase === "all" || phase === "publish") {
   publishRelease();
 }
 
-function prepareRelease() {
+// ---------------------------------------------------------------------------
+
+function prepareRelease(): void {
   configureGitUser();
 
   if (isNext) {
@@ -67,7 +81,7 @@ function prepareRelease() {
   commitVersionBumps();
 }
 
-function publishRelease() {
+function publishRelease(): void {
   const publishArgs = ["changeset", "publish"];
   if (isNext) {
     publishArgs.push("--tag", preTag);
@@ -75,7 +89,7 @@ function publishRelease() {
 
   try {
     run("pnpm", publishArgs, { env: publishEnv() });
-  } catch (error) {
+  } catch {
     warn(
       "Publish failed; retrying once to recover partially published packages.",
     );
@@ -90,7 +104,7 @@ function publishRelease() {
   }
 }
 
-function configureGitUser() {
+function configureGitUser(): void {
   const actor =
     process.env.GITHUB_ACTOR || process.env.USER || "github-actions";
   run("git", ["config", "--global", "user.name", actor]);
@@ -102,7 +116,7 @@ function configureGitUser() {
   ]);
 }
 
-function enterPreModeIfNeeded() {
+function enterPreModeIfNeeded(): void {
   const preJson = path.join(cwd, ".changeset", "pre.json");
   if (existsSync(preJson)) {
     log(`Already in Changesets pre mode for ${preTag}.`);
@@ -112,7 +126,7 @@ function enterPreModeIfNeeded() {
   run("pnpm", ["changeset", "pre", "enter", preTag]);
 }
 
-function exitPreModeIfNeeded() {
+function exitPreModeIfNeeded(): void {
   const preJson = path.join(cwd, ".changeset", "pre.json");
   if (!existsSync(preJson)) {
     log("Not in Changesets pre mode.");
@@ -122,7 +136,18 @@ function exitPreModeIfNeeded() {
   run("pnpm", ["changeset", "pre", "exit"]);
 }
 
-function validateStableRelease() {
+interface PackageJson {
+  name?: string;
+  version?: string;
+  private?: boolean;
+}
+
+interface PackageEntry {
+  file: string;
+  packageJson: PackageJson;
+}
+
+function validateStableRelease(): void {
   const preJson = path.join(cwd, ".changeset", "pre.json");
   if (existsSync(preJson)) {
     fail(
@@ -132,7 +157,7 @@ function validateStableRelease() {
 
   const badPackages = readPackageJsonFiles()
     .filter(({ packageJson }) => typeof packageJson.version === "string")
-    .filter(({ packageJson }) => packageJson.version.includes("-"));
+    .filter(({ packageJson }) => packageJson.version!.includes("-"));
 
   if (badPackages.length > 0) {
     for (const { file, packageJson } of badPackages) {
@@ -144,11 +169,11 @@ function validateStableRelease() {
   }
 }
 
-function validateNextRelease() {
+function validateNextRelease(): void {
   const badPackages = changedPackageJsonFiles()
     .filter(({ packageJson }) => packageJson.private !== true)
     .filter(({ packageJson }) => typeof packageJson.version === "string")
-    .filter(({ packageJson }) => !packageJson.version.includes(`-${preTag}.`));
+    .filter(({ packageJson }) => !packageJson.version!.includes(`-${preTag}.`));
 
   if (badPackages.length > 0) {
     for (const { file, packageJson } of badPackages) {
@@ -160,7 +185,7 @@ function validateNextRelease() {
   }
 }
 
-function commitVersionBumps() {
+function commitVersionBumps(): void {
   run("git", ["add", "-A"]);
 
   const diff = run("git", ["diff", "--cached", "--quiet"], {
@@ -180,7 +205,7 @@ function commitVersionBumps() {
   run("git", ["commit", "-m", message]);
 }
 
-function mergeBackMainIntoNext() {
+function mergeBackMainIntoNext(): void {
   try {
     run("git", ["fetch", "origin", nextBranch]);
     run("git", ["checkout", "-B", nextBranch, `origin/${nextBranch}`]);
@@ -192,14 +217,14 @@ function mergeBackMainIntoNext() {
       `Auto-merge ${stableBranch} into ${nextBranch} [skip ci]`,
     ]);
     run("git", ["push", "origin", nextBranch]);
-  } catch (error) {
+  } catch {
     warn(
       `Could not merge ${stableBranch} back into ${nextBranch}. Resolve manually if needed.`,
     );
   }
 }
 
-function hasPendingChangesets() {
+function hasPendingChangesets(): boolean {
   const changesetDir = path.join(cwd, ".changeset");
   if (!existsSync(changesetDir)) {
     return false;
@@ -210,7 +235,7 @@ function hasPendingChangesets() {
   );
 }
 
-function changedPackageJsonFiles() {
+function changedPackageJsonFiles(): PackageEntry[] {
   const packageJsonFiles = collectPackageJsonFiles(path.join(cwd, "packages"));
   if (packageJsonFiles.length === 0) {
     return [];
@@ -219,31 +244,29 @@ function changedPackageJsonFiles() {
   const output = run(
     "git",
     ["diff", "--name-only", "--", ...packageJsonFiles],
-    {
-      stdio: "pipe",
-    },
+    { stdio: "pipe" },
   ).stdout;
 
-  return output
+  return (output ?? "")
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean)
     .map(readPackageJsonFile);
 }
 
-function readPackageJsonFiles() {
+function readPackageJsonFiles(): PackageEntry[] {
   return collectPackageJsonFiles(path.join(cwd, "packages")).map(
     readPackageJsonFile,
   );
 }
 
-function collectPackageJsonFiles(dir) {
+function collectPackageJsonFiles(dir: string): string[] {
   if (!existsSync(dir)) {
     return [];
   }
 
   const entries = readdirSync(dir, { withFileTypes: true });
-  const files = [];
+  const files: string[] = [];
 
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name);
@@ -257,21 +280,25 @@ function collectPackageJsonFiles(dir) {
   return files;
 }
 
-function readPackageJsonFile(file) {
+function readPackageJsonFile(file: string): PackageEntry {
   return {
     file,
-    packageJson: JSON.parse(readFileSync(path.join(cwd, file), "utf8")),
+    packageJson: JSON.parse(
+      readFileSync(path.join(cwd, file), "utf8"),
+    ) as PackageJson,
   };
 }
 
-function getBranch() {
+function getBranch(): string {
   if (process.env.GITHUB_REF_NAME) {
     return process.env.GITHUB_REF_NAME;
   }
 
-  const output = run("git", ["branch", "--show-current"], {
-    stdio: "pipe",
-  }).stdout.trim();
+  const output =
+    run("git", ["branch", "--show-current"], {
+      stdio: "pipe",
+    }).stdout?.trim() ?? "";
+
   if (!output) {
     fail("Could not determine current branch.");
   }
@@ -279,14 +306,14 @@ function getBranch() {
   return output;
 }
 
-function githubEnv() {
+function githubEnv(): NodeJS.ProcessEnv {
   return {
     ...process.env,
     GITHUB_TOKEN: process.env.GITHUB_TOKEN || process.env.GH_TOKEN || "",
   };
 }
 
-function publishEnv() {
+function publishEnv(): NodeJS.ProcessEnv {
   return {
     ...githubEnv(),
     GH_TOKEN: process.env.GH_TOKEN || process.env.GITHUB_TOKEN || "",
@@ -295,20 +322,37 @@ function publishEnv() {
   };
 }
 
-function run(command, commandArgs, options = {}) {
+interface RunOptions {
+  env?: NodeJS.ProcessEnv;
+  check?: boolean;
+  stdio?: "inherit" | "pipe";
+}
+
+function run(
+  command: string,
+  commandArgs: string[],
+  options: RunOptions = {},
+): SpawnSyncReturns<string> {
   const printable = [command, ...commandArgs].join(" ");
   if (dryRun && isMutatingCommand(command, commandArgs)) {
     log(`[dry-run] ${printable}`);
-    return { status: 0, stdout: "", stderr: "" };
+    return {
+      status: 0,
+      stdout: "",
+      stderr: "",
+      pid: 0,
+      signal: null,
+      output: [],
+    };
   }
 
   log(`$ ${printable}`);
   const result = spawnSync(command, commandArgs, {
     cwd,
-    env: options.env || process.env,
+    env: options.env ?? process.env,
     encoding: "utf8",
     shell: false,
-    stdio: options.stdio || "inherit",
+    stdio: options.stdio ?? "inherit",
   });
 
   if (result.error) {
@@ -326,41 +370,26 @@ function run(command, commandArgs, options = {}) {
   return result;
 }
 
-function isMutatingCommand(command, commandArgs) {
+function isMutatingCommand(command: string, commandArgs: string[]): boolean {
   const commandText = [command, ...commandArgs].join(" ");
   return /(^| )(add|commit|push|checkout|merge|fetch|changeset pre|changeset version|changeset publish)( |$)/.test(
     commandText,
   );
 }
 
-function parseArgs(argv) {
-  const parsed = {};
-
-  for (const arg of argv) {
-    if (!arg.startsWith("--")) {
-      fail(`Unexpected argument ${arg}. Use --key=value or --flag.`);
-    }
-
-    const [rawKey, ...rawValue] = arg.slice(2).split("=");
-    parsed[rawKey] = rawValue.length > 0 ? rawValue.join("=") : true;
-  }
-
-  return parsed;
-}
-
-function log(message) {
+function log(message: string): void {
   console.log(`[release] ${message}`);
 }
 
-function warn(message) {
+function warn(message: string): void {
   console.warn(`::warning::${message}`);
 }
 
-function error(message) {
+function error(message: string): void {
   console.error(`::error::${message}`);
 }
 
-function fail(message) {
+function fail(message: string): never {
   error(message);
   process.exit(1);
 }
