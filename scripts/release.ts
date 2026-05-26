@@ -7,8 +7,6 @@ Changesets release orchestrator — runs in CI on pushes to `main` / `next`.
 Flow:
 1. Detect current branch; exit early if it is not a release branch.
 2. Exit early when no pending changeset files exist (unless --phase=publish).
-  On next, changeset files already recorded in `.changeset/pre.json` are
-  considered consumed because Changesets keeps them during pre mode.
 3. prepare phase
     a. Configure git user from GITHUB_ACTOR.
     b. Enter / exit Changesets pre-mode depending on the branch.
@@ -176,10 +174,6 @@ interface PackageEntry {
   packageJson: PackageJson;
 }
 
-interface PreState {
-  changesets?: string[];
-}
-
 function validateStableRelease(): void {
   const preJson = path.join(cwd, ".changeset", "pre.json");
   if (existsSync(preJson)) {
@@ -263,24 +257,9 @@ function hasPendingChangesets(): boolean {
     return false;
   }
 
-  const consumedChangesets = isNext ? readConsumedPreChangesets() : new Set();
-
   return readdirSync(changesetDir).some(
-    (file) =>
-      file.endsWith(".md") &&
-      file !== "README.md" &&
-      !consumedChangesets.has(path.basename(file, ".md")),
+    (file) => file.endsWith(".md") && file !== "README.md",
   );
-}
-
-function readConsumedPreChangesets(): Set<string> {
-  const preJson = path.join(cwd, ".changeset", "pre.json");
-  if (!existsSync(preJson)) {
-    return new Set();
-  }
-
-  const preState = JSON.parse(readFileSync(preJson, "utf8")) as PreState;
-  return new Set(preState.changesets ?? []);
 }
 
 function changedPackageJsonFiles(): PackageEntry[] {
