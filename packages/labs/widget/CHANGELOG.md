@@ -1,5 +1,11 @@
 # @j_c/gracile-1-widget
 
+## 0.1.4-next.1
+
+### Patch Changes
+
+- [`877a927`](https://github.com/JulianCataldo/gracile-changesets-test/commit/877a927fb02ecc3826bacac351ba6360471dba2c) - Again
+
 ## 0.1.4-next.0
 
 ### Patch Changes
