@@ -1,5 +1,12 @@
 # @j_c/gracile-1-engine
 
+## 0.1.4
+
+### Patch Changes
+
+- Updated dependencies [[`f6d395e`](https://github.com/JulianCataldo/gracile-changesets-test/commit/f6d395eeef9186be1e6cd730eaa72a7ab5286909), [`eaf41e0`](https://github.com/JulianCataldo/gracile-changesets-test/commit/eaf41e09a42aee376e08370901e065c02308e2ba)]:
+  - @j_c/gracile-1-internal-utils@0.2.1
+
 ## 0.1.4-next.0
 
 ### Patch Changes

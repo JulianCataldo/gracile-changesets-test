@@ -1,5 +1,18 @@
 # @j_c/gracile-1-widget
 
+## 0.1.3
+
+### Patch Changes
+
+- [`137c438`](https://github.com/JulianCataldo/gracile-changesets-test/commit/137c438ada32518a85bed5ff2ca57a146d941358) Thanks [@JulianCataldo](https://github.com/JulianCataldo)! - Yes
+
+  # Test 123
+
+  Hey
+
+- Updated dependencies []:
+  - @j_c/gracile-1-core@0.1.2
+
 ## 0.1.3-next.1
 
 ### Patch Changes
