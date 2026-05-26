@@ -1,5 +1,12 @@
 # @j_c/gracile-1-widget
 
+## 0.1.3-next.1
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @j_c/gracile-1-core@0.1.2-next.0
+
 ## 0.1.3-next.0
 
 ### Patch Changes
