@@ -1,5 +1,11 @@
 # @j_c/gracile-1-engine
 
+## 0.1.5-next.0
+
+### Patch Changes
+
+- [`48c35e7`](https://github.com/JulianCataldo/gracile-changesets-test/commit/48c35e762530adf480efc71853c380d570d8215d) - New stuff 123
+
 ## 0.1.4
 
 ### Patch Changes
