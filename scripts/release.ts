@@ -1,5 +1,7 @@
 #!/usr/bin/env tsx
 
+/// <reference types="node" />
+
 /*------------------------------------------------------------------------------
 
 Changesets release orchestrator — runs in CI on pushes to `main` / `next`.
@@ -125,6 +127,7 @@ function publishRelease(): void {
 
   run("git", ["push", "origin", `HEAD:${branch}`]);
   run("git", ["push", "--tags"]);
+  createGitHubReleases();
 
   if (isStable && !skipMergeBack) {
     mergeBackMainIntoNext();
@@ -172,6 +175,12 @@ interface PackageJson {
 interface PackageEntry {
   file: string;
   packageJson: PackageJson;
+}
+
+interface TagInfo {
+  packageName: string;
+  version: string;
+  raw: string;
 }
 
 function validateStableRelease(): void {
@@ -258,8 +267,134 @@ function hasPendingChangesets(): boolean {
   }
 
   return readdirSync(changesetDir).some(
-    (file) => file.endsWith(".md") && file !== "README.md",
+    (file: string) => file.endsWith(".md") && file !== "README.md",
   );
+}
+
+function createGitHubReleases(): void {
+  const tags = getHeadTags();
+  if (tags.length === 0) {
+    log("No package tags point at HEAD; skipping GitHub Releases.");
+    return;
+  }
+
+  for (const tag of tags) {
+    if (gitHubReleaseExists(tag.raw)) {
+      log(`GitHub release already exists for ${tag.raw}; skipping.`);
+      continue;
+    }
+
+    const commandArgs = [
+      "release",
+      "create",
+      tag.raw,
+      "--verify-tag",
+      "--title",
+      tag.raw,
+    ];
+
+    if (tag.version.includes("-")) {
+      commandArgs.push("--prerelease");
+    }
+
+    const notes = getReleaseNotes(tag);
+    if (notes) {
+      commandArgs.push("--notes", notes);
+    }
+
+    run("gh", commandArgs, { env: githubEnv() });
+  }
+}
+
+function gitHubReleaseExists(tag: string): boolean {
+  const result = run("gh", ["release", "view", tag], {
+    check: false,
+    env: githubEnv(),
+    stdio: "pipe",
+  });
+
+  return result.status === 0;
+}
+
+function getHeadTags(): TagInfo[] {
+  const output = run("git", ["tag", "--points-at", "HEAD"], {
+    stdio: "pipe",
+  }).stdout;
+
+  return (output ?? "")
+    .split("\n")
+    .map((line: string) => line.trim())
+    .filter(Boolean)
+    .map(parseTag)
+    .filter((tag: TagInfo | undefined): tag is TagInfo => tag !== undefined);
+}
+
+function parseTag(raw: string): TagInfo | undefined {
+  const match = /^(.*)@([^@]+)$/.exec(raw);
+  if (!match) {
+    warn(`Skipping unparseable tag ${raw}.`);
+    return undefined;
+  }
+
+  const [, packageName, version] = match;
+  return { packageName, version, raw };
+}
+
+function getReleaseNotes(tag: TagInfo): string | undefined {
+  const changelogFile = getChangelogFile(tag.packageName);
+  if (!changelogFile) {
+    log(
+      `No changelog found for ${tag.packageName}; creating GitHub release without notes.`,
+    );
+    return undefined;
+  }
+
+  const changelogText = readFileSync(path.join(cwd, changelogFile), "utf8");
+  const notes = extractReleaseNotes(changelogText, tag.version);
+  if (!notes) {
+    warn(`Could not find release notes for ${tag.raw} in ${changelogFile}.`);
+  }
+
+  return notes;
+}
+
+function getChangelogFile(packageName: string): string | undefined {
+  const entry = readPackageJsonFiles().find(
+    ({ packageJson }) => packageJson.name === packageName,
+  );
+  if (!entry) {
+    return undefined;
+  }
+
+  const changelogFile = path.join(path.dirname(entry.file), "CHANGELOG.md");
+  if (existsSync(path.join(cwd, changelogFile))) {
+    return changelogFile;
+  }
+
+  return undefined;
+}
+
+function extractReleaseNotes(
+  changelogText: string,
+  version: string,
+): string | undefined {
+  const lines = changelogText.split("\n");
+  const versionHeading = `## ${version}`;
+  const startIndex = lines.findIndex((line) => line.trim() === versionHeading);
+  if (startIndex === -1) {
+    return undefined;
+  }
+
+  let endIndex = lines.length;
+  for (let index = startIndex + 1; index < lines.length; index += 1) {
+    if (lines[index].startsWith("## ")) {
+      endIndex = index;
+      break;
+    }
+  }
+
+  const notes = lines.slice(startIndex + 1, endIndex).join("\n").trim();
+  return notes || undefined;
 }
 
 function changedPackageJsonFiles(): PackageEntry[] {
@@ -276,7 +411,7 @@ function changedPackageJsonFiles(): PackageEntry[] {
 
   return (output ?? "")
     .split("\n")
-    .map((line) => line.trim())
+    .map((line: string) => line.trim())
     .filter(Boolean)
     .map(readPackageJsonFile);
 }
@@ -399,7 +534,7 @@ function run(
 
 function isMutatingCommand(command: string, commandArgs: string[]): boolean {
   const commandText = [command, ...commandArgs].join(" ");
-  return /(^| )(add|commit|push|checkout|merge|fetch|changeset pre|changeset version|changeset publish)( |$)/.test(
+  return /(^| )(add|commit|push|checkout|merge|fetch|changeset pre|changeset version|changeset publish|gh release create)( |$)/.test(
     commandText,
   );
 }
@@ -419,4 +554,5 @@ function error(message: string): void {
 function fail(message: string): never {
   error(message);
   process.exit(1);
+  throw new Error(message);
 }
